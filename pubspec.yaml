@@ -1,0 +1,32 @@
+name: scan_learn_english
+description: >-
+  Scan & Learn English — Vietnamese learners photograph objects and build
+  a local English–Vietnamese vocabulary with Gemini and TTS.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  google_generative_ai: ^0.4.6
+  image_picker: ^1.1.2
+  flutter_tts: ^4.2.0
+  path_provider: ^2.1.4
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.13
+
+flutter:
+  uses-material-design: true
