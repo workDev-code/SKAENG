@@ -22,29 +22,34 @@ class GeminiWordResult {
 class GeminiVisionService {
   GeminiVisionService({
     required String backendBaseUrl,
-    String firebaseIdToken = '',
+    required Future<String?> Function() idTokenProvider,
     http.Client? client,
   }) : _backendBaseUrl = backendBaseUrl.trim(),
-       _firebaseIdToken = firebaseIdToken.trim(),
+       _idTokenProvider = idTokenProvider,
        _client = client ?? http.Client();
 
   final String _backendBaseUrl;
-  final String _firebaseIdToken;
+  final Future<String?> Function() _idTokenProvider;
   final http.Client _client;
 
   bool get hasBackendBaseUrl => _backendBaseUrl.isNotEmpty;
-  bool get hasFirebaseIdToken => _firebaseIdToken.isNotEmpty;
-  bool get isConfigured => hasBackendBaseUrl && hasFirebaseIdToken;
 
   Future<GeminiWordResult> analyzeImage({
     required Uint8List imageBytes,
     required String mimeType,
   }) async {
-    if (!isConfigured) {
+    if (!hasBackendBaseUrl) {
       throw StateError(
-        'Missing backend config. Run with: '
-        '--dart-define=BACKEND_BASE_URL=http://localhost:8080 '
-        '--dart-define=FIREBASE_ID_TOKEN=your_token',
+        'Missing backend base URL. Run with '
+        '--dart-define=BACKEND_BASE_URL=http://localhost:8080',
+      );
+    }
+
+    final token = await _idTokenProvider();
+    if (token == null || token.trim().isEmpty) {
+      throw StateError(
+        'Missing Firebase ID token. Sign in (Firebase Anonymous Auth), '
+        'or pass --dart-define=FIREBASE_ID_TOKEN=... for short-lived testing.',
       );
     }
 
@@ -53,7 +58,7 @@ class GeminiVisionService {
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_firebaseIdToken',
+        'Authorization': 'Bearer ${token.trim()}',
       },
       body: jsonEncode({
         'imageBase64': base64Encode(imageBytes),
@@ -91,6 +96,10 @@ class GeminiVisionService {
         final message = error['message'];
         if (message is String && message.trim().isNotEmpty) {
           throw StateError(message.trim());
+        }
+        final code = error['code'];
+        if (code is String && code.trim().isNotEmpty) {
+          throw StateError(code.trim());
         }
       }
       throw StateError('Backend request failed (${response.statusCode}).');

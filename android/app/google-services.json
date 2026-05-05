@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460947965599",
+    "project_id": "skaeng-f6787",
+    "storage_bucket": "skaeng-f6787.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460947965599:android:536585e783c032c81f04aa",
+        "android_client_info": {
+          "package_name": "com.skaneng.scan_learn_english"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWH8vb7RCM0mJQqFb0rdzF65PKp8v0Rjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

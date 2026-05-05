@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../models/saved_word.dart';
 import '../providers/vocabulary_store.dart';
+import '../services/auth_token_resolver.dart';
 import '../services/gemini_vision_service.dart';
 import '../services/tts_service.dart';
 import '../widgets/word_result_card.dart';
@@ -101,15 +102,21 @@ class _ScanScreenState extends State<ScanScreen> {
     if (bytes == null) return;
 
     final gemini = context.read<GeminiVisionService>();
+    final auth = context.read<AuthTokenResolver>();
     if (!gemini.hasBackendBaseUrl) {
       setState(() {
-        _error = 'Missing BACKEND_BASE_URL. Set it with --dart-define.';
+        _error =
+            'Missing BACKEND_BASE_URL. Pass --dart-define=BACKEND_BASE_URL=...';
       });
       return;
     }
-    if (!gemini.hasFirebaseIdToken) {
+    if (!auth.isAuthConfigured) {
       setState(() {
-        _error = 'Missing FIREBASE_ID_TOKEN. Set it with --dart-define.';
+        _error =
+            'Auth not configured. On mobile: run `flutterfire configure` (or edit '
+            'lib/firebase_options.dart), enable Anonymous sign-in in Firebase '
+            'Console, then rebuild. Optional dev override: '
+            '--dart-define=FIREBASE_ID_TOKEN=...';
       });
       return;
     }

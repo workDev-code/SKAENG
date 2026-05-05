@@ -74,11 +74,96 @@ docker compose up --build
 
 ### Chạy Flutter qua backend proxy
 
+Luồng chuẩn: Flutter **không** giữ `GEMINI_API_KEY`; mỗi request gửi **`Authorization: Bearer <Firebase ID token>`**.
+
+#### Mobile (Android / iOS) — khuyến nghị
+
+1. Firebase Console → **Authentication** → **Anonymous** → bật.
+2. Thêm app Android/iOS vào project (đúng bundle/package như trong repo).
+3. Một lần trong thư mục app Flutter:
+
+   ```bash
+   dart pub global activate flutterfire_cli
+   flutterfire configure
+   ```
+
+   Lệnh này ghi đè `lib/firebase_options.dart` và thường tạo/thêm cấu hình native (ví dụ `android/app/google-services.json`, plugin Gradle nếu CLI đề xuất). Làm theo output của CLI cho đến khi build Android/iOS chạy được.
+
+4. Chạy app (máy ảo/emulator gọi `localhost`; **điện thoại thật** cần IP máy dev, ví dụ `http://192.168.1.10:8080`):
+
+   ```bash
+   flutter run --dart-define=BACKEND_BASE_URL=http://<host>:8080
+   ```
+
+Backend và điện thoại phải cùng mạng; không trỏ `localhost` trên máy thật vì đó là chính điện thoại — **trừ** khi bạn dùng **`adb reverse`** (Android, xem dưới).
+
+#### Chạy Flutter trên điện thoại thật
+
+**Chung**
+
+1. Cài Flutter/SDK đủ (Android Studio / Xcode theo platform).
+2. Chạy backend trên máy dev (`npm run dev` trong `backend/`), có `GEMINI_API_KEY` trong `.env`.
+3. Điện thoại và máy dev **cùng Wi‑Fi** (hoặc USB để debug; có thể dùng USB + reverse cổng).
+4. Firebase: đã `flutterfire configure`, **Anonymous** bật, bundle/package khớp app.
+
+**Lấy URL backend cho máy thật**
+
+- Cách A — **IP LAN** (ổn định cho cả Android & iOS): trên máy dev xem IP (ví dụ `192.168.1.10`), chạy:
+
+  ```bash
+  flutter run --dart-define=BACKEND_BASE_URL=http://192.168.1.10:8080
+  ```
+
+  Tường lửa máy dev không được chặn cổng `8080`. Backend Node mặc định lắng nghe mọi interface nên máy trong LAN có thể gọi được.
+
+- Cách B — **Android + USB**: không cần IP nếu reverse cổng (chỉ thiết bị đang cắm USB):
+
+  ```bash
+  adb reverse tcp:8080 tcp:8080
+  flutter run --dart-define=BACKEND_BASE_URL=http://127.0.0.1:8080
+  ```
+
+  Mỗi lần gắn máy lại có thể cần chạy lại `adb reverse`.
+
+**Android**
+
+1. **Cài đặt** → **Giới thiệu về điện thoại** → bấm 7 lần **Số bản dựng** → bật **Tùy chọn nhà phát triển**.
+2. **Tùy chọn nhà phát triển** → bật **USB debugging**.
+3. Cắm USB → chấp nhận RSA fingerprint trên điện thoại.
+4. Trên máy dev: `flutter devices` — phải thấy thiết bị; chạy `flutter run` (thêm `--dart-define=BACKEND_BASE_URL=...` như trên).
+
+**iOS**
+
+1. Mở `ios/Runner.xcworkspace` trong Xcode một lần → **Signing & Capabilities** → chọn **Team** (Apple ID dev).
+2. Cắm iPhone → tin cậy máy tính trên điện thoại nếu được hỏi.
+3. `flutter devices` có iPhone → `flutter run --dart-define=BACKEND_BASE_URL=http://<IP-LAN-máy-dev>:8080`.
+
+*(USB-only reverse cổng như Android không áp dụng giống hệt cho iOS; nên dùng IP LAN hoặc tunnel khác nếu cần.)*
+
+#### Desktop Linux / test nhanh
+
+Token JWT tạm (hết hạn sau ~1h):
+
 ```bash
 flutter run \
   --dart-define=BACKEND_BASE_URL=http://localhost:8080 \
   --dart-define=FIREBASE_ID_TOKEN=<firebase_id_token>
 ```
+
+#### Tuỳ chọn: Firebase chỉ qua dart-define (không dùng `firebase_options.dart`)
+
+Giữ `CONFIGURE_ME` trong `lib/firebase_options.dart` và truyền `FB_*` như trước (Android ví dụ):
+
+```bash
+flutter run \
+  --dart-define=BACKEND_BASE_URL=http://localhost:8080 \
+  --dart-define=FB_PROJECT_ID=your_project \
+  --dart-define=FB_MESSAGING_SENDER_ID=your_sender_id \
+  --dart-define=FB_ANDROID_API_KEY=your_android_api_key \
+  --dart-define=FB_ANDROID_APP_ID=your_android_app_id
+```
+
+(iOS/Web: thêm bộ `FB_IOS_*` / `FB_WEB_*` tương ứng.)
 
 ---
 
