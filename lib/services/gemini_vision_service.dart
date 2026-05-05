@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:google_generative_ai/google_generative_ai.dart';
-
-import '../core/constants.dart';
+import 'package:http/http.dart' as http;
 
 /// Parses Gemini vision output into vocabulary fields.
 class GeminiWordResult {
@@ -20,64 +18,50 @@ class GeminiWordResult {
   final String exampleSentence;
 }
 
-/// Calls Gemini with an image and expects a single JSON object in the reply.
+/// Calls backend proxy with an image and expects a single JSON object in reply.
 class GeminiVisionService {
-  GeminiVisionService({required String apiKey}) : _apiKey = apiKey;
+  GeminiVisionService({
+    required String backendBaseUrl,
+    String firebaseIdToken = '',
+    http.Client? client,
+  }) : _backendBaseUrl = backendBaseUrl.trim(),
+       _firebaseIdToken = firebaseIdToken.trim(),
+       _client = client ?? http.Client();
 
-  final String _apiKey;
+  final String _backendBaseUrl;
+  final String _firebaseIdToken;
+  final http.Client _client;
 
-  static const _systemPrompt = '''
-You help Vietnamese learners of English. The user sends a photo of a real object, text label, or scene.
-
-Identify the MAIN English word or short phrase (1–4 words) that best matches what is shown.
-Respond with ONLY valid JSON (no markdown fences, no extra text) using exactly these keys:
-{
-  "englishWord": string,
-  "vietnameseTranslation": string,
-  "pronunciationGuide": string,
-  "exampleSentence": string
-}
-
-Rules:
-- "englishWord": the English term only.
-- "vietnameseTranslation": clear Vietnamese meaning for learners.
-- "pronunciationGuide": simple phonetic spelling using English letters (not IPA), e.g. "WAH-tur" for "water".
-- "exampleSentence": one natural English sentence using the word (school-appropriate).
-''';
-
-  bool get hasApiKey => _apiKey.isNotEmpty;
+  bool get hasBackendBaseUrl => _backendBaseUrl.isNotEmpty;
+  bool get hasFirebaseIdToken => _firebaseIdToken.isNotEmpty;
+  bool get isConfigured => hasBackendBaseUrl && hasFirebaseIdToken;
 
   Future<GeminiWordResult> analyzeImage({
     required Uint8List imageBytes,
     required String mimeType,
   }) async {
-    if (!hasApiKey) {
+    if (!isConfigured) {
       throw StateError(
-        'Missing GEMINI_API_KEY. Run with: '
-        'flutter run --dart-define=GEMINI_API_KEY=your_key',
+        'Missing backend config. Run with: '
+        '--dart-define=BACKEND_BASE_URL=http://localhost:8080 '
+        '--dart-define=FIREBASE_ID_TOKEN=your_token',
       );
     }
 
-    final model = GenerativeModel(
-      model: kGeminiVisionModel,
-      apiKey: _apiKey,
-      systemInstruction: Content.system(_systemPrompt),
+    final uri = Uri.parse('$_backendBaseUrl/analyze-image');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_firebaseIdToken',
+      },
+      body: jsonEncode({
+        'imageBase64': base64Encode(imageBytes),
+        'mimeType': mimeType,
+      }),
     );
 
-    final response = await model.generateContent([
-      Content.multi([
-        TextPart('Return only the JSON object for what you see in this image.'),
-        DataPart(mimeType, imageBytes),
-      ]),
-    ]);
-
-    final text = response.text;
-    if (text == null || text.trim().isEmpty) {
-      throw FormatException('Empty response from Gemini.');
-    }
-
-    final jsonString = _extractJsonObject(text);
-    final map = jsonDecode(jsonString) as Map<String, dynamic>;
+    final map = _parseBody(response);
 
     String s(String key) {
       final v = map[key];
@@ -93,19 +77,24 @@ Rules:
     );
   }
 
-  /// Strips optional ```json fences and grabs the outermost `{...}`.
-  static String _extractJsonObject(String raw) {
-    var t = raw.trim();
-    final fence = RegExp(r'```(?:json)?\s*([\s\S]*?)```', multiLine: true);
-    final m = fence.firstMatch(t);
-    if (m != null) {
-      t = m.group(1)!.trim();
+  Map<String, dynamic> _parseBody(http.Response response) {
+    if (response.body.trim().isEmpty) {
+      throw const FormatException('Empty response from backend.');
     }
-    final start = t.indexOf('{');
-    final end = t.lastIndexOf('}');
-    if (start < 0 || end <= start) {
-      throw FormatException('No JSON object found in model output.');
+    final json = jsonDecode(response.body);
+    if (json is! Map<String, dynamic>) {
+      throw const FormatException('Invalid JSON response from backend.');
     }
-    return t.substring(start, end + 1);
+    if (response.statusCode >= 400) {
+      final error = json['error'];
+      if (error is Map<String, dynamic>) {
+        final message = error['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          throw StateError(message.trim());
+        }
+      }
+      throw StateError('Backend request failed (${response.statusCode}).');
+    }
+    return json;
   }
 }

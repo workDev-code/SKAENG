@@ -101,10 +101,15 @@ class _ScanScreenState extends State<ScanScreen> {
     if (bytes == null) return;
 
     final gemini = context.read<GeminiVisionService>();
-    if (!gemini.hasApiKey) {
+    if (!gemini.hasBackendBaseUrl) {
       setState(() {
-        _error =
-            'Set GEMINI_API_KEY when running the app (see README or run args).';
+        _error = 'Missing BACKEND_BASE_URL. Set it with --dart-define.';
+      });
+      return;
+    }
+    if (!gemini.hasFirebaseIdToken) {
+      setState(() {
+        _error = 'Missing FIREBASE_ID_TOKEN. Set it with --dart-define.';
       });
       return;
     }
@@ -206,7 +211,7 @@ class _ScanScreenState extends State<ScanScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.auto_awesome),
-              label: Text(_loading ? 'Analyzing…' : 'Analyze with Gemini'),
+              label: Text(_loading ? 'Analyzing…' : 'Analyze via Backend'),
             ),
           ],
           if (_error != null) ...[

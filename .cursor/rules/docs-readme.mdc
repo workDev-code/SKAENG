@@ -1,0 +1,17 @@
+---
+description: Keep README aligned with current product and backend proxy architecture
+globs: README.md
+alwaysApply: false
+---
+
+# README Architecture Guardrails
+
+- Keep the core flow explicit: image capture in Flutter -> backend proxy -> Gemini -> structured vocabulary result.
+- Never document direct Gemini calls from Flutter; `GEMINI_API_KEY` must stay backend-only.
+- Preserve API contract for `POST /analyze-image`:
+  - Requires `Authorization: Bearer <Firebase ID token>`
+  - Request body has `imageBase64` and `mimeType`
+  - Response keys stay: `englishWord`, `vietnameseTranslation`, `pronunciationGuide`, `exampleSentence`
+- When changing run instructions, keep both local Node and Docker paths accurate.
+- Keep naming consistent with project terms: Scan, Result, Vocabulary List, Flashcard (optional).
+- Avoid adding undocumented features; if architecture changes, update API and run sections in the same edit.

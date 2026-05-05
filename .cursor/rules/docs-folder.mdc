@@ -1,0 +1,14 @@
+---
+description: Documentation conventions for docs folder and markdown guides
+globs: docs/**
+alwaysApply: false
+---
+
+# Docs Writing Rules
+
+- Write docs to match the real implementation in `lib/` and `backend/src/`; do not speculate behavior.
+- Use Vietnamese-friendly explanations for product context, but keep API field names and commands exact.
+- For endpoint docs, include method, path, auth requirement, request shape, response shape, and error behavior.
+- Mention security boundary clearly whenever auth or Gemini integration is described.
+- If a doc changes expected payload keys or env vars, mirror that change in setup sections and examples.
+- Prefer concise sections and runnable commands over long narrative text.

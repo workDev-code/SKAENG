@@ -24,6 +24,62 @@
 | **flutter_tts** | Phát âm |
 | **Hive** | Lưu từ vựng local |
 
+## Backend (proxy bảo mật cho Gemini)
+
+Mục tiêu: **không bao giờ để `GEMINI_API_KEY` nằm trong Flutter**. Flutter đăng nhập bằng **Firebase Auth**, gửi ảnh + **Firebase ID token** lên backend, backend verify token rồi mới gọi Gemini.
+
+### API
+
+- `GET /health` → `{ ok: true }`
+- `POST /analyze-image` (bắt buộc header `Authorization: Bearer <Firebase ID token>`)
+
+Body:
+
+```json
+{
+  "imageBase64": "<base64>",
+  "mimeType": "image/jpeg"
+}
+```
+
+Response (200):
+
+```json
+{
+  "englishWord": "water bottle",
+  "vietnameseTranslation": "chai nước",
+  "pronunciationGuide": "WAW-ter BAH-tl",
+  "exampleSentence": "I drank water from a bottle."
+}
+```
+
+### Chạy backend local (Node)
+
+Trong terminal:
+
+```bash
+cd backend
+cp .env.example .env
+# set GEMINI_API_KEY trong backend/.env
+npm run dev
+```
+
+### Chạy backend local (Docker)
+
+```bash
+cp backend/.env.example backend/.env
+# set GEMINI_API_KEY trong backend/.env
+docker compose up --build
+```
+
+### Chạy Flutter qua backend proxy
+
+```bash
+flutter run \
+  --dart-define=BACKEND_BASE_URL=http://localhost:8080 \
+  --dart-define=FIREBASE_ID_TOKEN=<firebase_id_token>
+```
+
 ---
 
 ## Thời gian prototype

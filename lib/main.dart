@@ -7,8 +7,10 @@ import 'providers/vocabulary_store.dart';
 import 'services/gemini_vision_service.dart';
 import 'services/tts_service.dart';
 
-/// Pass at run time: `--dart-define=GEMINI_API_KEY=your_key`
-const String _kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+/// Pass at run time: `--dart-define=BACKEND_BASE_URL=http://localhost:8080`
+const String _kBackendBaseUrl = String.fromEnvironment('BACKEND_BASE_URL');
+/// Temporary token injection until Firebase Auth is wired in app.
+const String _kFirebaseIdToken = String.fromEnvironment('FIREBASE_ID_TOKEN');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +22,10 @@ Future<void> main() async {
 
   final box = await VocabularyStore.openBox();
   final vocabularyStore = VocabularyStore(box);
-  final gemini = GeminiVisionService(apiKey: _kGeminiApiKey);
+  final gemini = GeminiVisionService(
+    backendBaseUrl: _kBackendBaseUrl,
+    firebaseIdToken: _kFirebaseIdToken,
+  );
   final tts = TtsService();
 
   runApp(

@@ -1,0 +1,14 @@
+---
+description: Enforce SkanEng architecture from the canonical diagram
+alwaysApply: true
+---
+
+# SkanEng Architecture Guardrails
+
+- Treat `skaneng_architecture.svg` as the canonical architecture reference.
+- Preserve monorepo split: Flutter client in `lib/` and backend proxy in `backend/`.
+- Keep call flow unchanged unless explicitly requested: Flutter image capture -> backend `POST /analyze-image` -> Gemini -> JSON result back to Flutter.
+- Never move Gemini direct calls into Flutter; `GEMINI_API_KEY` stays server-only (`backend/.env`).
+- Keep Firebase token verification in backend middleware for protected analysis requests.
+- Keep API response contract stable unless user approves a breaking change: `englishWord`, `vietnameseTranslation`, `pronunciationGuide`, `exampleSentence`.
+- If any requested change conflicts with this architecture, warn first and propose a compliant alternative.
